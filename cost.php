@@ -13,7 +13,7 @@ $cost_per_kurir = [];
 
 for($i=0; $i<3; $i++) {
     $result = json_decode($data->get_cost($kota_asal, $kota_tujuan, $berat, $list_kurir[$i], true));
-    $cost_per_kurir[$i] = $result['rajaongkir']['result'][0];
+    $cost_per_kurir[$i] = $result['rajaongkir']['results'][0];
 }
 
 $data->array_sort_by_column($cost_per_kurir, 'costs');
