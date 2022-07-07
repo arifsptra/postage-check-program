@@ -4,7 +4,14 @@ require_once "function.php";
 $data = new Shipping();
 
 $kota = $data->get_city();
+
 $kota_array = json_decode($kota, true);
+
+if ($kota_array['rajaongkir']['status']['code'] == 200) {
+    $kota_result  = $kota_array['rajaongkir']['results'];
+}else {
+    die('This key has reached the daily limit.');
+};
 
 ?>
 
@@ -22,6 +29,8 @@ $kota_array = json_decode($kota, true);
     <link rel="stylesheet" href="https://select2.github.io/select2-bootstrap-theme/css/select2-bootstrap.css">
     <!-- Datatables -->
     <link rel="stylesheet" href="//cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css">
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="localhost:2004/favicon.ico">
 </head>
 <body>
     <div class="container">
@@ -62,13 +71,13 @@ $kota_array = json_decode($kota, true);
                     </div>
                 </div>
             </div>
-            <div class="col md-8">
+            <div class="col-md-8">
                 <div class="card">
                     <div class="card-header" id="hasil-pengecekan">
                         Hasil Pengecekan
                     </div>
                     <div class="card-body">
-                        <table id="table-hasil-pengecekan" class="display">
+                        <table id="tabel-hasil-pengecekan" class="display">
                             <thead>
                                 <tr>
                                     <th width="1%">No</th>
@@ -77,6 +86,8 @@ $kota_array = json_decode($kota, true);
                                     <th>Tarif</th>
                                 </tr>
                             </thead>
+                            <tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -87,6 +98,7 @@ $kota_array = json_decode($kota, true);
     <!-- JQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
     <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -95,13 +107,23 @@ $kota_array = json_decode($kota, true);
 
     <!-- For Option View -->
     <script>
-        $('#kota_asal').select2({
-            placeholder: 'Pilih Kota Asal',
-            theme: "bootstrap"
-        });
-        $('#kota_tujuan').select2({
-            placeholder: 'Pilih Kota Tujuan',
-            theme: "bootstrap"
+        function resetForm(form, select2 = []) {
+            $('#' + form)[0].reset();
+            if (select2.length > 0) {
+                $.each(select2, function(key, value) {
+                $('#' + value).val('').trigger('change');
+                });
+            }
+        }
+        $(document).ready(function() {
+            $('#kota_asal').select2({
+                placeholder: "Pilih Kota Asal",
+                theme: "bootstrap"
+            });
+            $('#kota_tujuan').select2({
+                placeholder: "Pilih Kota Tujuan",
+                theme: "bootstrap"
+            });
         });
         $('#form-cek-ongkir').on('submit', function(e){
             e.preventDefault();
@@ -111,8 +133,46 @@ $kota_array = json_decode($kota, true);
             let berat = $('#berat').val();
             
             $('#hasil-pengecekan').html(`Hasil Pengecekan <b>${kota_asal}</b> ke <b>${kota_tujuan}</b> @${berat} gram`);
-        });
 
+            hasil_pengecekan();
+        });
+        function hasil_pengecekan(){
+            $('#tabel-hasil-pengecekan').DataTable({
+                processing: true,
+                serverSide: true,
+                bDestroy: true,
+                responsive: true,
+                ajax: {
+                    url: 'cost.php',
+                    type: "POST",
+                    data: {
+                        kota_asal: $('#kota_asal').val(),
+                        kota_tujuan: $('#kota_tujuan').val(),
+                        berat: $('#berat').val()
+                    },
+                    complete: function(data) {
+                        resetForm('form-cek-ongkir', ['kota_asal', 'kota_tujuan']);
+                        $('#btn-periksa-ongkir').prop('disabled', false).text('Periksa Ongkir');
+                    }
+                },
+                columnDefs: [{
+                    targets: [0],
+                    orderable: false,
+                },
+                {
+                    width: "1%",
+                    targets: [0],
+                },
+                {
+                    className: "dt-nowrap",
+                    targets: [1, 2],
+                },
+                {
+                    className: "dt-right",
+                    targets: [-1],
+                }]
+            })
+        }
     </script>
 </body>
 </html>
